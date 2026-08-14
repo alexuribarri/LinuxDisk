@@ -22,11 +22,28 @@ curl -sSL https://raw.githubusercontent.com/alexuribarri/LinuxDisk/main/install.
 
 ---
 
+## 🚀 Launch Instructions (Requires Sudo for Full S.M.A.R.T. Access)
+
+Querying hardware S.M.A.R.T. controllers and raw disk blocks requires root/sudo privileges:
+
+### 1. Launch Desktop GUI (Recommended)
+```bash
+sudo -E linuxdisk
+```
+*(The `-E` flag preserves your Ubuntu X11/Wayland display environment so the GUI opens smoothly).*
+
+### 2. Launch Interactive Terminal TUI (SSH / Server Mode)
+```bash
+sudo linuxdisk --cli
+```
+
+---
+
 ## 🌟 Key Features
 
 ### 1. 🩺 CrystalDiskInfo Parity (Health & S.M.A.R.T.)
 - **Health Shield & Score**: Real-time `GOOD (100%)`, `CAUTION`, or `BAD` grading.
-- **Native USB S.M.A.R.T. Pass-Through**: Linux kernel SAT support allows reading **Power-On Hours**, **Temperature**, and bad sectors on **external USB Western Digital HDDs out-of-the-box** without third-party drivers!
+- **Native USB S.M.A.R.T. Pass-Through**: Linux kernel SAT support allows reading **Power-On Hours**, **Temperature**, and bad sectors on **external USB Western Digital HDDs out-of-the-box**!
 - **Critical HDD Metrics Verification**:
   - `ID 05` Reallocated Bad Sectors (0 Bad Sectors proof)
   - `ID C5` Current Pending Sectors
@@ -36,35 +53,16 @@ curl -sSL https://raw.githubusercontent.com/alexuribarri/LinuxDisk/main/install.
 
 ### 2. ⚡ CrystalDiskMark Parity (Speed Benchmark)
 - **Direct Unbuffered I/O**: Disables page cache using POSIX `O_DIRECT` / `O_SYNC` and sector-aligned 4KB memory buffers (`mmap`) to test true disk hardware throughput.
+- **Configurable Target Folder**: Target your mounted external drive (e.g. `/media/user/WD10TB`), custom directory, or `/tmp`.
 - **Standard Test Profiles**:
   - `SEQ1M Q8T1` — Sequential 1MiB (Queues: 8, Threads: 1)
   - `SEQ1M Q1T1` — Sequential 1MiB (Queues: 1, Threads: 1)
   - `RND4K Q32T1` — Random 4KiB (Queues: 32, Threads: 1)
   - `RND4K Q1T1` — Random 4KiB (Queues: 1, Threads: 1)
-- **Configurable Parameters**: Test size selection (128MiB up to 1GiB+) and target partition selection.
 
 ### 3. 📦 Marketplace & Selling Proof Generator
 - **1-Click Markdown Certificate**: Instant copy of formatted tables and bullet points ready to paste directly into eBay listings, Reddit r/Hardwareswap, or forum posts.
 - **Export Diagnostic Report**: Save verified `.md` or `.txt` diagnostic certificates with timestamps.
-
-### 4. 📟 Dual Interface (Desktop GUI + Terminal TUI)
-- **Desktop GUI**: Automatically launches on Ubuntu Desktop with a sleek dark theme.
-- **Terminal TUI**: Automatically launches when running over SSH or with `--cli` for headless servers.
-
----
-
-## 🚀 Usage
-
-### Launch Desktop GUI
-```bash
-linuxdisk
-```
-*(Or click **LinuxDisk** in your Ubuntu Applications launcher)*
-
-### Launch Interactive Terminal TUI
-```bash
-linuxdisk --cli
-```
 
 ---
 

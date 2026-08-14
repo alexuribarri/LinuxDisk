@@ -1,11 +1,20 @@
-#!/usr/bin/env python3
-import sys
-import os
+#!/usr/bin/env bash
+# LinuxDisk launcher with environment preservation for X11/Wayland display under sudo
 
-# Add package directory to sys.path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-from src.app import main
+# If running with sudo without DISPLAY preserved, check if caller user had DISPLAY
+if [ -n "$SUDO_USER" ] && [ -z "$DISPLAY" ]; then
+    export DISPLAY=":0"
+fi
 
-if __name__ == "__main__":
-    main()
+if [ -n "$SUDO_USER" ] && [ -z "$XAUTHORITY" ]; then
+    USER_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+    if [ -f "$USER_HOME/.Xauthority" ]; then
+        export XAUTHORITY="$USER_HOME/.Xauthority"
+    fi
+fi
+
+# Run python app
+export PYTHONPATH="${SCRIPT_DIR}:${PYTHONPATH}"
+exec python3 "${SCRIPT_DIR}/src/app.py" "$@"

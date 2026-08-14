@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import threading
+import os
 from typing import Dict, Any, List, Optional
 from ..core.disk_scanner import DiskScanner
 from ..core.benchmark_engine import BenchmarkEngine
@@ -12,8 +13,8 @@ class LinuxDiskGUI:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title("LinuxDisk — CrystalDisk Suite for Linux")
-        self.root.geometry("960x680")
-        self.root.minsize(860, 580)
+        self.root.geometry("980x700")
+        self.root.minsize(880, 600)
         self.root.configure(bg="#1e1e24")
 
         self.scanner = DiskScanner()
@@ -60,8 +61,11 @@ class LinuxDiskGUI:
         lbl_title = tk.Label(header, text="💾 LinuxDisk", font=("Helvetica", 16, "bold"), fg=self.fg_primary, bg=self.bg_dark)
         lbl_title.pack(side="left")
 
-        lbl_sub = tk.Label(header, text="CrystalDisk Unified Suite for Ubuntu", font=("Helvetica", 10), fg=self.fg_secondary, bg=self.bg_dark)
-        lbl_sub.pack(side="left", padx=12, pady=4)
+        is_root = os.geteuid() == 0 if hasattr(os, "geteuid") else False
+        perm_text = "🔒 Sudo Mode (Full Access)" if is_root else "⚠️ Standard User (Run with sudo for full SMART)"
+        perm_color = self.accent_green if is_root else "#eab308"
+        lbl_perm = tk.Label(header, text=perm_text, font=("Helvetica", 9, "bold"), fg=perm_color, bg=self.bg_dark)
+        lbl_perm.pack(side="left", padx=12, pady=4)
 
         btn_rescan = tk.Button(header, text="🔄 Rescan Disks", command=self.refresh_disks, bg=self.bg_card, fg=self.fg_primary, relief="flat", padx=10, pady=4, cursor="hand2")
         btn_rescan.pack(side="right")
@@ -171,12 +175,20 @@ class LinuxDiskGUI:
         self.btn_run_bench.pack(side="left", padx=(0, 16))
 
         tk.Label(ctrl_bar, text="Size:", font=("Helvetica", 10), fg=self.fg_secondary, bg=self.bg_card).pack(side="left")
-        self.bench_size_var = tk.StringVar(value="512")
-        cmb_size = ttk.Combobox(ctrl_bar, textvariable=self.bench_size_var, values=["128", "256", "512", "1024"], width=6, state="readonly")
-        cmb_size.pack(side="left", padx=(4, 16))
+        self.bench_size_var = tk.StringVar(value="256")
+        cmb_size = ttk.Combobox(ctrl_bar, textvariable=self.bench_size_var, values=["64", "128", "256", "512"], width=5, state="readonly")
+        cmb_size.pack(side="left", padx=(4, 12))
+
+        tk.Label(ctrl_bar, text="Target:", font=("Helvetica", 10), fg=self.fg_secondary, bg=self.bg_card).pack(side="left")
+        self.target_dir_var = tk.StringVar(value="/tmp")
+        self.cmb_target = ttk.Combobox(ctrl_bar, textvariable=self.target_dir_var, values=["/tmp", os.path.expanduser("~")], width=18)
+        self.cmb_target.pack(side="left", padx=(4, 4))
+
+        btn_browse = tk.Button(ctrl_bar, text="Browse...", font=("Helvetica", 9), bg=self.bg_highlight, fg=self.fg_primary, padx=6, pady=2, relief="flat", command=self._browse_target_folder)
+        btn_browse.pack(side="left", padx=(0, 12))
 
         self.lbl_bench_status = tk.Label(ctrl_bar, text="Ready", font=("Helvetica", 10), fg=self.fg_secondary, bg=self.bg_card)
-        self.lbl_bench_status.pack(side="left", padx=8)
+        self.lbl_bench_status.pack(side="left", padx=4)
 
         # Progress bar
         self.progress_bench = ttk.Progressbar(self.tab_bench, orient="horizontal", mode="determinate")
@@ -208,6 +220,11 @@ class LinuxDiskGUI:
 
             self.bench_score_widgets[pid] = {"read": read_box, "write": write_box}
 
+    def _browse_target_folder(self):
+        d = filedialog.askdirectory(title="Select Target Folder to Benchmark")
+        if d:
+            self.target_dir_var.set(d)
+
     def _build_proof_tab(self):
         top_bar = tk.Frame(self.tab_proof, bg=self.bg_dark)
         top_bar.pack(fill="x", padx=8, pady=8)
@@ -238,6 +255,16 @@ class LinuxDiskGUI:
     def _display_disk(self, disk: Dict[str, Any]):
         self.selected_disk = disk
         smart = disk.get("smart") or {}
+
+        # Update available target directories
+        mounts = disk.get("mounts", [])
+        avail_targets = []
+        for m in mounts:
+            if os.path.exists(m) and os.access(m, os.W_OK):
+                avail_targets.append(m)
+        avail_targets.extend(["/tmp", os.path.expanduser("~")])
+        self.cmb_target["values"] = list(dict.fromkeys(avail_targets))
+        self.target_dir_var.set(avail_targets[0])
 
         # Top diagnostic card
         grade = smart.get("health_grade", "GOOD")
@@ -289,12 +316,7 @@ class LinuxDiskGUI:
             self.is_benchmarking = False
             return
 
-        if not self.selected_disk:
-            messagebox.showwarning("No Disk", "Please select a disk first.")
-            return
-
-        mounts = self.selected_disk.get("mounts", [])
-        target_dir = mounts[0] if mounts else "/tmp"
+        target_dir = self.target_dir_var.get().strip() or "/tmp"
 
         self.is_benchmarking = True
         self.btn_run_bench.config(text="⏹ STOP", bg=self.accent_red)
@@ -332,6 +354,9 @@ class LinuxDiskGUI:
             md = ListingExporter.generate_markdown(self.selected_disk, self.benchmark_results)
             self.txt_proof.delete("1.0", tk.END)
             self.txt_proof.insert("1.0", md)
+
+        if self.bench_engine.last_error:
+            messagebox.showerror("Benchmark Error", self.bench_engine.last_error)
 
     def _copy_markdown(self):
         content = self.txt_proof.get("1.0", tk.END)
