@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # LinuxDisk launcher with environment preservation for X11/Wayland display under sudo
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 
 # If running with sudo without DISPLAY preserved, check if caller user had DISPLAY
 if [ -n "$SUDO_USER" ] && [ -z "$DISPLAY" ]; then

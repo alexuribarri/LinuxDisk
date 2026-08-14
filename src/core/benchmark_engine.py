@@ -61,6 +61,20 @@ class BenchmarkEngine:
         # Cap test size for responsiveness (64MB to 512MB)
         actual_mb = max(64, min(test_size_mb, 512))
 
+        # Check available free disk space
+        try:
+            import shutil
+            usage = shutil.disk_usage(target_dir)
+            required_bytes = actual_mb * 1024 * 1024
+            if usage.free < required_bytes:
+                free_mb = usage.free / (1024 * 1024)
+                self.last_error = f"Insufficient disk space on {target_dir}: {free_mb:.1f} MB free, but {actual_mb} MB required."
+                if progress_cb:
+                    progress_cb(f"Error: {self.last_error}", 0.0, {})
+                return {}
+        except Exception:
+            pass
+
         for profile in self.TEST_PROFILES:
             if self.should_stop:
                 break
@@ -88,6 +102,7 @@ class BenchmarkEngine:
                     results[pid]["write_lat_us"] = write_res["lat_us"]
             except Exception as e:
                 self.last_error = f"Write error on {profile['name']}: {e}"
+                break
 
             completed_steps += 1
             if self.should_stop:

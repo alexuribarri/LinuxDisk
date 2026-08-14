@@ -257,14 +257,26 @@ class LinuxDiskGUI:
         smart = disk.get("smart") or {}
 
         # Update available target directories
+        import shutil
         mounts = disk.get("mounts", [])
         avail_targets = []
         for m in mounts:
             if os.path.exists(m) and os.access(m, os.W_OK):
                 avail_targets.append(m)
         avail_targets.extend(["/tmp", os.path.expanduser("~")])
-        self.cmb_target["values"] = list(dict.fromkeys(avail_targets))
-        self.target_dir_var.set(avail_targets[0])
+        avail_targets = list(dict.fromkeys(avail_targets))
+        self.cmb_target["values"] = avail_targets
+
+        # Select best initial target with sufficient free space
+        best_target = "/tmp"
+        for m in avail_targets:
+            try:
+                if shutil.disk_usage(m).free >= 64 * 1024 * 1024:
+                    best_target = m
+                    break
+            except Exception:
+                pass
+        self.target_dir_var.set(best_target)
 
         # Top diagnostic card
         grade = smart.get("health_grade", "GOOD")
@@ -327,9 +339,13 @@ class LinuxDiskGUI:
             def on_progress(msg, prog, results):
                 self.root.after(0, lambda: self._update_bench_ui(msg, prog, results))
 
-            res = self.bench_engine.run_benchmark(target_dir, size_mb, on_progress)
-            self.benchmark_results = res
-            self.root.after(0, self._finish_benchmark)
+            try:
+                res = self.bench_engine.run_benchmark(target_dir, size_mb, on_progress)
+                self.benchmark_results = res
+            except Exception as e:
+                self.bench_engine.last_error = str(e)
+            finally:
+                self.root.after(0, self._finish_benchmark)
 
         threading.Thread(target=run_thread, daemon=True).start()
 
