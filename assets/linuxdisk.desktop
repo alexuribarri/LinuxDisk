@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=LinuxDisk
+Comment=CrystalDisk Unified Suite for Ubuntu (S.M.A.R.T. Health & Speed Benchmark)
+Exec=/usr/local/bin/linuxdisk
+Icon=utilities-system-monitor
+Terminal=false
+Categories=System;HardwareSettings;Utility;
+Keywords=crystaldisk;smart;benchmark;disk;hdd;ssd;drive;health;
